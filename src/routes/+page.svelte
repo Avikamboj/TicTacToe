@@ -3,12 +3,13 @@
 
 	const userSymbol = writable<string | null>(null);
 	let computerSymbol: string | null = null;
+	let userPlaysFirst = writable<boolean>(true); // New state variable
 
-	let board = Array(9).fill(null);
-	let currentPlayer = 'X';
+	let board: (string | null)[] = Array(9).fill(null);
+	let currentPlayer: string = 'X';
 	let winner: string | null = null;
 
-	const winningCombinations = [
+	const winningCombinations: number[][] = [
 		[0, 1, 2],
 		[3, 4, 5],
 		[6, 7, 8],
@@ -19,10 +20,10 @@
 		[2, 4, 6]
 	];
 
-	let isUserTurn = true;
+	let isUserTurn: boolean = true;
 
 	// Check for winner or tie
-	const checkWinner = () => {
+	const checkWinner = (): boolean => {
 		for (let combo of winningCombinations) {
 			const [a, b, c] = combo;
 			if (board[a] && board[a] === board[b] && board[a] === board[c]) {
@@ -40,24 +41,27 @@
 	};
 
 	// Reset the game
-	const resetGame = () => {
+	const resetGame = (): void => {
 		board = Array(9).fill(null);
 		currentPlayer = 'X';
 		winner = null;
-		isUserTurn = true;
+		isUserTurn = $userPlaysFirst; // Set turn based on user preference
 	};
 
 	// Minimax algorithm for finding the best move
-	const minimax = (newBoard: any[], isMaximizing: boolean) => {
+	const minimax = (
+		newBoard: (string | null)[],
+		isMaximizing: boolean
+	): { score: number; index?: number } => {
 		// Check if game has a winner
 		if (checkForWinner(newBoard, computerSymbol)) return { score: 10 };
 		if (checkForWinner(newBoard, $userSymbol)) return { score: -10 };
-		if (newBoard.every((cell: null) => cell !== null)) return { score: 0 };
+		if (newBoard.every((cell) => cell !== null)) return { score: 0 };
 
-		let bestMove;
-		let bestScore = isMaximizing ? -Infinity : Infinity;
+		let bestMove: number | undefined;
+		let bestScore: number = isMaximizing ? -Infinity : Infinity;
 
-		newBoard.forEach((cell: null, index: string | number) => {
+		newBoard.forEach((cell, index) => {
 			if (cell === null) {
 				newBoard[index] = isMaximizing ? computerSymbol : $userSymbol;
 				const score = minimax(newBoard, !isMaximizing).score;
@@ -81,7 +85,7 @@
 	};
 
 	// Helper function to check for a winner in a hypothetical board
-	const checkForWinner = (board: any[], symbol: string | null) => {
+	const checkForWinner = (board: (string | null)[], symbol: string | null): boolean => {
 		for (let combo of winningCombinations) {
 			const [a, b, c] = combo;
 			if (board[a] === symbol && board[b] === symbol && board[c] === symbol) {
@@ -92,13 +96,13 @@
 	};
 
 	// Computer move logic
-	const computerMove = () => {
+	const computerMove = (): number | undefined => {
 		const move = minimax([...board], true).index;
 		return move;
 	};
 
 	// Handle cell click for user
-	const handleClick = (index: number) => {
+	const handleClick = (index: number): void => {
 		if (board[index] || winner || !isUserTurn) return;
 
 		board[index] = $userSymbol;
@@ -127,7 +131,7 @@
 	};
 
 	// End the game and reset after 4 seconds
-	const endGame = () => {
+	const endGame = (): void => {
 		if (winner === $userSymbol) {
 			winner = 'You Win';
 		} else if (winner === 'tie') {
@@ -144,10 +148,18 @@
 	};
 
 	// Start the game with selected symbol
-	const startGame = (symbol: string) => {
+	const startGame = (symbol: string): void => {
 		$userSymbol = symbol;
 		computerSymbol = symbol === 'X' ? 'O' : 'X';
 		resetGame();
+		if (!$userPlaysFirst) {
+			// Computer moves first
+			setTimeout(() => {
+				const move = computerMove();
+				if (move !== undefined) board[move] = computerSymbol;
+				isUserTurn = true;
+			}, 500);
+		}
 	};
 </script>
 
@@ -155,6 +167,10 @@
 {#if !$userSymbol}
 	<div class="flex min-h-screen flex-col items-center justify-center bg-gray-200">
 		<h1 class="mb-6 text-4xl font-bold">Tic Tac Toe</h1>
+		<div class="mb-4 flex items-center">
+			<input type="checkbox" id="userPlaysFirst" class="mr-2" bind:checked={$userPlaysFirst} />
+			<label for="userPlaysFirst" class="text-2xl">I want to play first</label>
+		</div>
 		<h2 class="mb-4 text-2xl">Choose Your Mark:</h2>
 		<div class="flex">
 			<button
