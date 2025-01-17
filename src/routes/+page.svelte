@@ -96,9 +96,19 @@
 	};
 
 	// Computer move logic
+	// Computer move logic with randomness for the first move
 	const computerMove = (): number | undefined => {
-		const move = minimax([...board], true).index;
-		return move;
+		if (board.every((cell) => cell === null)) {
+			// First move (choose randomly from available spots)
+			const availableMoves = board
+				.map((cell, index) => (cell === null ? index : null))
+				.filter((index) => index !== null);
+			const randomMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+			return randomMove;
+		} else {
+			// Subsequent moves, use minimax to decide
+			return minimax([...board], true).index;
+		}
 	};
 
 	// Handle cell click for user
